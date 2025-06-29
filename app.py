@@ -10,6 +10,17 @@ from utils.database import init_database, save_analysis, get_user_history, updat
 from utils.openai_service import get_openai_service
 import uuid
 
+# Caching heavy resources
+@st.cache_resource(show_spinner=False)
+def get_analyzer():
+    """Return a cached ResumeAnalyzer instance"""
+    return ResumeAnalyzer()
+
+@st.cache_resource(show_spinner=False)
+def get_openai():
+    """Return a cached OpenAIService instance"""
+    return get_openai_service()
+
 # Page configuration with enhanced styling
 st.set_page_config(
     page_title="ResumeFit - AI Resume Optimizer",
@@ -172,7 +183,7 @@ st.markdown("""
     }
 
     /* Enhanced sidebar styling */
-    .css-1d391kg {
+    section[data-testid="stSidebar"] {
         background: rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(20px);
     }
@@ -530,7 +541,7 @@ def main():
             # Show loading spinner
             with st.spinner("Analyzing resume..."):
                 try:
-                    analyzer = ResumeAnalyzer()
+                    analyzer = get_analyzer()
                     results = analyzer.analyze_resume(
                         st.session_state.resume_text,
                         st.session_state.job_description
@@ -568,7 +579,7 @@ def main():
             if st.button("Get AI Tailoring Suggestions", type="secondary"):
                 with st.spinner("Generating AI-powered suggestions..."):
                     try:
-                        openai_service = get_openai_service()
+                        openai_service = get_openai()
                         if openai_service:
                             ai_suggestions = openai_service.generate_tailored_suggestions(
                                 st.session_state.resume_text,
@@ -599,7 +610,7 @@ def main():
 
             if st.button(button_text, type="primary", help=button_help):
                 with st.spinner("AI is performing advanced resume transformation..."):
-                    openai_service = get_openai_service()
+                    openai_service = get_openai()
                     if openai_service:
                         # Always store original resume and analysis before any rewriting
                         if 'original_resume_text' not in st.session_state:
@@ -625,7 +636,7 @@ def main():
                             st.session_state.rewritten_resume = rewritten_resume
 
                             # Analyze the rewritten resume
-                            analyzer = ResumeAnalyzer()
+                            analyzer = get_analyzer()
                             new_results = analyzer.analyze_resume(
                                 rewritten_resume,
                                 st.session_state.job_description
@@ -645,7 +656,7 @@ def main():
         with col3:
             if st.button("Generate Cover Letter", type="secondary"):
                 with st.spinner("Creating cover letter draft..."):
-                    openai_service = get_openai_service()
+                    openai_service = get_openai()
                     if openai_service:
                         cover_letter = openai_service.generate_cover_letter_draft(
                             st.session_state.resume_text,
